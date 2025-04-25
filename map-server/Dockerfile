@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     libgeos-dev \
     libproj-dev \
     libsqlite3-dev \
+    libpqxx-dev \
     libxml2-dev \
     pkg-config \
     python3-pip \
