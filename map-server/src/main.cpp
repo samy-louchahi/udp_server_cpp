@@ -3,7 +3,7 @@
 #include "map/udp_receiver.hpp" 
 
 int main() {
-    map_server::DBClient db("dbname=ros_db user=postgres password=pwd host=db port=5432");
+    map_server::DBClient db("dbname=mydb user=user password=password host=db port=5432");
 
     map_server::InsertBuffer buffer(db, 1000, 1000);  // 1000 points ou 1 seconde
     map_server::UdpReceiver receiver(9000);
