@@ -1,0 +1,26 @@
+# ──────────────────────────────────────────────
+#  UDP Octomap Server – configuration par défaut
+# ──────────────────────────────────────────────
+
+# ------------ Réseau UDP ----------------------
+udp:
+  port:            48484     # port d’écoute
+  mtu_payload:     1300      # octets utiles (≤1472‑en‑tête)
+
+# ------------ Base de données -----------------
+postgres:
+  uri:             "postgresql://postgres:postgres@localhost:5432/maps"
+  copy_buffer_rows: 2048     # lignes mises en tampon avant COPY
+
+# ------------ Décompression -------------------
+compression:
+  accept_gzip:     true      # décompresser si flags & 0x04 (zlib)
+
+# ------------ Fichiers (snapshot optionnel) ---
+snapshot:
+  enabled:         false
+  directory:       "/var/maps"   # où sauvegarder le .bt reconstitué
+
+# ------------ Logs ----------------------------
+log:
+  level:           info      # trace | debug | info | warn | error

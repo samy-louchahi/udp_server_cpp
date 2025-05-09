@@ -15,7 +15,7 @@ services:
       timeout: 30s
       retries: 5
   map-server:
-    build: ./map-server
+    build: ./server_udp
     depends_on: 
       db:
         condition: service_healthy
