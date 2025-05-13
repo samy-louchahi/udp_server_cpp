@@ -1,33 +1,22 @@
 services:
-  db:
-    image: postgres:latest
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: mydb
-    ports:
-      - "5432:5432"
-    volumes:
-      - db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "user"]
-      interval: 5s
-      timeout: 30s
-      retries: 5
-  map-server:
+  # ───────── server_udp (réception + INSERT) ─────────
+  server_udp:
     build: ./server_udp
-    depends_on: 
-      db:
-        condition: service_healthy
-    ports: ["9000:9000"]
+    container_name: server_udp
+    # host networking = pas de NAT UDP, plus simple pour le drone
+    network_mode: host
     environment:
+      PGURI: postgresql://user:password@localhost:5432/mydb
       UDP_PORT: 9000
-      DB_HOST: db
-      DB_USER: user
-      DB_PASSWORD: password
-      DB_NAME: mydb
-      batch_size: 1000
-      FLUSH_INTERVAL_MS: 3000
+      UDP_MTU: 1300
+    volumes:
+      - ./map-server/config:/opt/server_udp/config:ro
 
-volumes:
-  db_data:
+  # ───────── (facultatif) petit sink UDP de debug ────
+  udp_sink:
+    image: alpine
+    network_mode: host
+    command: >
+      sh -c "apk add --no-cache socat &&
+             echo '[sink] listening on 9000 …' &&
+             socat -v udp-recv:9000 -"

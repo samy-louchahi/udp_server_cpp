@@ -5,56 +5,53 @@
 #include <optional>
 #include <condition_variable>
 
+#include "sudp/db/spatial_pipeline.hpp"   // ← PointRGB
+
 namespace sudp::net {
 
-/** Structure transmise du thread network au thread DB. */
+using sudp::db::PointRGB;
+
 struct DbItem
 {
-    uint8_t                 drone_id;
-    uint32_t                seq;
-    uint8_t                 flags;
-    std::vector<uint8_t>    payload;   ///< Octomap binaire (blob)
+    uint8_t              drone_id;
+    uint32_t             seq;
+    uint8_t              flags;
+    std::vector<uint8_t> payload;   // blob binaire complet
 };
 
-/**
- * File SPSC (ou MPSC simple) thread‑safe basée sur std::queue.
- *  • push ()  : producteur (réseau)
- *  • pop()    : consommateur (DB) – retourne std::optional
- */
+/* -------- lot de points pour spatial_point ------------------ */
+struct PointBatch
+{
+    std::vector<PointRGB> pts;
+};
+
 class DbQueue
 {
 public:
+    /* -------- blobs (scans_binary) --------------------------- */
     void push(DbItem&& it)
+    { std::lock_guard lk(m_); blobs_.push(std::move(it)); cv_.notify_one(); }
+
+    std::optional<DbItem> try_pop_blob()
     {
-        {
-            std::lock_guard<std::mutex> lk(m_);
-            q_.emplace(std::move(it));
-        }
-        cv_.notify_one();
+        std::lock_guard lk(m_); if(blobs_.empty()) return std::nullopt;
+        auto it = std::move(blobs_.front()); blobs_.pop(); return it;
     }
 
-    /** pop bloquant (attend si vide) */
-    DbItem pop_blocking()
-    {
-        std::unique_lock<std::mutex> lk(m_);
-        cv_.wait(lk, [&]{ return !q_.empty(); });
-        DbItem it = std::move(q_.front());
-        q_.pop();
-        return it;
-    }
+    /* -------- points (spatial_point) ------------------------- */
+    void push_points(std::vector<PointRGB>&& v)
+    { std::lock_guard lk(m_); batches_.emplace(PointBatch{std::move(v)}); cv_.notify_one(); }
 
-    /** pop non‑bloquant : retourne std::nullopt si vide. */
-    std::optional<DbItem> try_pop()
+    std::optional<PointBatch> try_pop_batch()
     {
-        std::lock_guard<std::mutex> lk(m_);
-        if(q_.empty()) return std::nullopt;
-        DbItem it = std::move(q_.front());
-        q_.pop();
-        return it;
+        std::lock_guard lk(m_); if(batches_.empty()) return std::nullopt;
+        auto b = std::move(batches_.front()); batches_.pop(); return b;
     }
 
 private:
-    std::queue<DbItem>      q_;
+    std::queue<DbItem>      blobs_;
+    std::queue<PointBatch>  batches_;
+
     std::mutex              m_;
     std::condition_variable cv_;
 };

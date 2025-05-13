@@ -7,6 +7,7 @@
 #include "sudp/core/udp_header.hpp"
 #include "sudp/core/reassembly_buffer.hpp"
 #include "sudp/net/db_queue.hpp"
+#include "sudp/db/spatial_pipeline.hpp"      // PointRGB pour forward
 
 namespace sudp::net {
 
